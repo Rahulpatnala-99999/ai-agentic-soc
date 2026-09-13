@@ -52,7 +52,7 @@ def quarantine_virtual_machine(token, machine_id):
         timeout=30
     )
 
-    if resp.status_code == 201 or 200:
+    if resp.status_code in (200, 201):
         return True
     return False
 
