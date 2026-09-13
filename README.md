@@ -1,4 +1,4 @@
-# Threat Hunt
+# AI Agentic SOC
 
 An AI-assisted SOC threat hunting application that turns natural-language security questions into targeted KQL investigations against Microsoft Azure Log Analytics, then analyzes the returned telemetry for suspicious activity.
 
@@ -69,7 +69,7 @@ The exact fields available to generated queries are controlled by `backend/core/
 ## Project structure
 
 ```text
-threat-hunt/
+ai-agentic-soc/
 ├── backend/
 │   ├── main.py
 │   ├── requirements.txt
@@ -116,10 +116,12 @@ The backend also uses Azure's default credential chain for Azure resources. Conf
 Create `frontend/.env` using `frontend/.env.example`.
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=""
 ```
 
-If the backend is hosted elsewhere, set this value to the backend's API base URL.
+When running the backend locally on port `8000`, the application uses `http://localhost:8000` as the default API base URL.
+
+If the backend is hosted elsewhere, set `VITE_API_BASE_URL` to the backend's API base URL.
 
 ## Running the application
 
@@ -143,7 +145,11 @@ Start the API:
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The API exposes a health endpoint at `/api/health`.
+The API exposes a health endpoint at:
+
+```text
+/api/health
+```
 
 ### Frontend
 
@@ -151,6 +157,11 @@ From `frontend/`:
 
 ```bash
 npm install
+```
+
+Start the Vite development server:
+
+```bash
 npm run dev
 ```
 
@@ -210,14 +221,22 @@ Threat-hunt results follow a structured format containing fields such as:
     "id": "T1059"
   },
   "confidence": "High",
-  "recommendations": ["Investigate"],
-  "indicators_of_compromise": ["example.exe"],
-  "tags": ["unusual command"],
+  "recommendations": [
+    "Investigate"
+  ],
+  "indicators_of_compromise": [
+    "example.exe"
+  ],
+  "tags": [
+    "unusual command"
+  ],
   "notes": "Additional analyst context"
 }
 ```
 
-Findings are appended to `backend/_threats.jsonl` with the investigation timestamp, original question, and selected table. That file is ignored by Git so local investigation history does not become part of the public repository.
+Findings are appended to `backend/_threats.jsonl` with the investigation timestamp, original question, and selected table.
+
+That file is ignored by Git so local investigation history does not become part of the public repository.
 
 ## Security model
 
@@ -253,7 +272,3 @@ Findings are appended to `backend/_threats.jsonl` with the investigation timesta
 ## MITRE ATT&CK
 
 The threat-analysis prompts are designed to identify and map suspicious behavior to MITRE ATT&CK tactics, techniques, and sub-techniques when the available evidence supports the mapping.
-
-## License
-
-Add the project's chosen license here before publishing if you intend to distribute the repository under an open-source license.
