@@ -1,0 +1,11 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+openai==1.57.4
+colorama==0.4.6
+tiktoken==0.8.0
+pandas==2.2.3
+azure-identity==1.19.0
+azure-monitor-query==1.4.0
+requests==2.32.3
+python-dotenv==1.0.1

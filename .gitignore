@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Real findings from your own environment — not something to publish.
+# The app creates this file fresh on first run if it's missing.
+backend/_threats.jsonl
+
+# Node / Vite
+node_modules/
+dist/
+.env
+.env.local
+
+# Editor
+.vscode/
