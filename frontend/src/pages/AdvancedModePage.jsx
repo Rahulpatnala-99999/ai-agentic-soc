@@ -28,6 +28,11 @@ function timeRangeLabel(ctx) {
   return `${ctx.time_range_hours}h`;
 }
 
+// Let long names wrap at word boundaries (e.g. "DeviceProcess" / "Events").
+function softWrap(text) {
+  return (text || "").replace(/([a-z])([A-Z])/g, "$1\u200B$2");
+}
+
 // Manage planning, KQL editing, model selection, and final analysis.
 export default function AdvancedModePage() {
   // Planning, query-editing, model-selection, and analysis state.
@@ -215,14 +220,14 @@ export default function AdvancedModePage() {
           <Box>
             <Typography sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", color: tokens.faint, mb: "8px" }}>context</Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <Box sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", bgcolor: tokens.surface, border: `1px solid ${tokens.border}`, borderRadius: `${tokens.radius}px`, p: "5px 7px", color: tokens.muted }}>
-                table<br /><Box component="span" sx={{ color: tokens.ink }}>{plan.query_context?.table_name}</Box>
+              <Box sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", bgcolor: tokens.surface, border: `1px solid ${tokens.border}`, borderRadius: `${tokens.radius}px`, p: "5px 7px", color: tokens.muted, overflowWrap: "anywhere" }}>
+                table<br /><Box component="span" sx={{ color: tokens.ink }}>{softWrap(plan.query_context?.table_name)}</Box>
               </Box>
-              <Box sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", bgcolor: tokens.surface, border: `1px solid ${tokens.border}`, borderRadius: `${tokens.radius}px`, p: "5px 7px", color: tokens.muted }}>
+              <Box sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", bgcolor: tokens.surface, border: `1px solid ${tokens.border}`, borderRadius: `${tokens.radius}px`, p: "5px 7px", color: tokens.muted, overflowWrap: "anywhere" }}>
                 range<br /><Box component="span" sx={{ color: tokens.ink }}>{timeRangeLabel(plan.query_context)}</Box>
               </Box>
               {plan.query_context?.device_name && (
-                <Box sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", bgcolor: tokens.surface, border: `1px solid ${tokens.border}`, borderRadius: `${tokens.radius}px`, p: "5px 7px", color: tokens.muted }}>
+                <Box sx={{ fontFamily: tokens.fontMono, fontSize: "0.68rem", bgcolor: tokens.surface, border: `1px solid ${tokens.border}`, borderRadius: `${tokens.radius}px`, p: "5px 7px", color: tokens.muted, overflowWrap: "anywhere" }}>
                   host<br /><Box component="span" sx={{ color: tokens.ink }}>{plan.query_context.device_name}</Box>
                 </Box>
               )}
