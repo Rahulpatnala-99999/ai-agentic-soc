@@ -1,274 +1,128 @@
 # AI Agentic SOC
 
-An AI-assisted SOC threat hunting application that turns natural-language security questions into targeted KQL investigations against Microsoft Azure Log Analytics, then analyzes the returned telemetry for suspicious activity.
+**An LLM-powered threat hunting analyst for Microsoft Defender and Azure telemetry.**
 
-The project combines a React frontend with a FastAPI backend, OpenAI models for query planning and threat analysis, Azure Log Analytics for telemetry, and Microsoft Defender for Endpoint for host isolation actions.
+<p align="center">
+  <img src="assets/landing.jpg" alt="AI Agentic SOC landing page with Quick and Advanced modes" width="860">
+</p>
 
-## What it does
+Ask a security question in plain English. The agent plans the investigation, queries live telemetry in an Azure Log Analytics workspace with Microsoft Sentinel enabled, analyzes the results with an OpenAI model, and returns findings mapped to **MITRE ATT&CK**, with indicators of compromise, confidence levels and recommended actions. For a high-confidence finding on a single host, the analyst can isolate the machine through the **Microsoft Defender for Endpoint API**, after an explicit confirmation.
 
-- Accepts threat-hunting questions in natural language.
-- Selects a relevant Log Analytics table, fields, filters, and time range.
-- Validates the generated query context against configured table and field allow-lists.
-- Builds and executes KQL queries against Azure Log Analytics.
-- Analyzes returned telemetry with a selected OpenAI model.
-- Maps findings to MITRE ATT&CK techniques where applicable.
-- Extracts indicators of compromise, confidence levels, and recommended actions.
-- Stores findings locally in JSONL for browsing and searching.
-- Provides an Advanced mode for reviewing/editing KQL and selecting the analysis model.
-- Provides an optional Microsoft Defender device-isolation action for qualifying high-confidence host findings.
+Everything runs against **live data**: Defender for Endpoint device telemetry, Azure activity and network flow logs, and Microsoft Entra ID sign-ins, collected from hundreds of internet-facing Windows and Linux virtual machines that receive real attack traffic.
 
-## Investigation flow
+## Highlights
 
-```text
-Natural-language question
-        │
-        ▼
-AI query planning
-        │
-        ▼
-Table / field guardrails
-        │
-        ▼
-KQL generation
-        │
-        ▼
-Azure Log Analytics
-        │
-        ▼
-Threat-hunt analysis
-        │
-        ▼
-Findings + MITRE ATT&CK + IOCs
-        │
-        ▼
-Local investigation history
-```
+- **Live telemetry.** Queries run on a production-style Log Analytics workspace with Defender for Endpoint, Microsoft Sentinel and Entra ID data. No sample datasets.
+- **Two ways to work.** Quick mode goes from question to findings in one step. Advanced mode pauses for review, so the analyst can edit the KQL and choose the model.
+- **Guardrails.** Every plan is checked against per-table field allow-lists and an approved model list before anything runs.
+- **Cost aware.** Advanced mode estimates tokens, context limits and cost for each model before the analysis is executed.
+- **Analyst-grade output.** Findings carry MITRE ATT&CK tactic, technique and ID, confidence, indicators of compromise and recommendations, and are saved to a searchable history.
+- **Response action.** Full network isolation of a device through Microsoft Defender for Endpoint, behind a password and a confirmation dialog.
 
-Quick mode runs this workflow as a single investigation.
+## Environment
 
-Advanced mode separates planning from analysis so the generated KQL can be reviewed and edited before the final analysis is run.
+The agent runs on top of an Azure environment of 300 to 400 Windows and Linux VMs, exposed to the internet behind Network Security Groups and onboarded to Microsoft Defender for Endpoint. Their telemetry, together with Azure activity, network flow analytics and Entra ID sign-ins, lands in a single Log Analytics workspace that the agent queries.
 
-## Supported telemetry
+<p align="center">
+  <img src="assets/architecture.svg" alt="Architecture: Azure VMs, Log Analytics workspace, AI SOC Analyst, OpenAI and Defender for Endpoint" width="900">
+</p>
 
-The query-planning layer currently includes guidance for:
+## Investigation workflow
 
-- `DeviceProcessEvents`
-- `DeviceNetworkEvents`
-- `DeviceLogonEvents`
-- `DeviceFileEvents`
-- `DeviceRegistryEvents`
-- `AlertInfo`
-- `AlertEvidence`
-- `AzureNetworkAnalytics_CL`
-- `AzureActivity`
-- `SigninLogs`
-- `AuditLogs`
+<p align="center">
+  <img src="assets/workflow.svg" alt="Investigation workflow from analyst question to findings and response" width="900">
+</p>
 
-The exact fields available to generated queries are controlled by `backend/core/GUARDRAILS.py`.
-
-## Project structure
-
-```text
-ai-agentic-soc/
-├── backend/
-│   ├── main.py
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── core/
-│       ├── EXECUTOR.py
-│       ├── GUARDRAILS.py
-│       ├── MODEL_MANAGEMENT.py
-│       ├── PROMPT_MANAGEMENT.py
-│       ├── UTILITIES.py
-│       └── _keys.py
-│
-├── frontend/
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── .env.example
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── api.js
-│       ├── App.jsx
-│       ├── main.jsx
-│       └── theme.js
-│
-└── .gitignore
-```
-
-## Backend configuration
-
-Create `backend/.env` using `backend/.env.example` as the template.
-
-Required values:
-
-```env
-OPENAI_API_KEY=your-openai-api-key
-LOG_ANALYTICS_WORKSPACE_ID=your-workspace-id
-HUNT_PASSWORD=your-access-password
-```
-
-The backend also uses Azure's default credential chain for Azure resources. Configure an Azure identity with permission to query the target Log Analytics workspace and, when using host isolation, the required Microsoft Defender API permissions.
-
-## Frontend configuration
-
-Create `frontend/.env` using `frontend/.env.example`.
-
-```env
-VITE_API_BASE_URL=""
-```
-
-When running the backend locally on port `8000`, the application uses `http://localhost:8000` as the default API base URL.
-
-If the backend is hosted elsewhere, set `VITE_API_BASE_URL` to the backend's API base URL.
-
-## Running the application
-
-### Backend
-
-From `backend/`:
-
-```bash
-python -m venv .venv
-```
-
-Activate the environment and install the dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Start the API:
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-The API exposes a health endpoint at:
-
-```text
-/api/health
-```
-
-### Frontend
-
-From `frontend/`:
-
-```bash
-npm install
-```
-
-Start the Vite development server:
-
-```bash
-npm run dev
-```
-
-The Vite development server uses port `5173` by default.
-
-## Application routes
-
-| Route | Purpose |
+| Module | Responsibility |
 |---|---|
-| `/` | Project landing page |
-| `/quick` | Quick investigation workflow |
-| `/advanced` | Query planning, KQL editing, and model selection |
-| `/history` | Search previously logged findings |
-| `/about` | Project overview |
+| `main.py` | FastAPI application. Streams each investigation step to the UI with Server-Sent Events |
+| `PROMPT_MANAGEMENT.py` | Query-planning tool definition, system prompt, and table-specific hunting instructions |
+| `GUARDRAILS.py` | Table and field allow-lists, approved models with limits and pricing |
+| `EXECUTOR.py` | Log Analytics queries, threat-hunt analysis, Defender device isolation |
+| `MODEL_MANAGEMENT.py` | Token counting and cost estimates per model |
+| `UTILITIES.py` | Input sanitising and the findings history |
 
-## API endpoints
+## Quick mode and Advanced mode
 
-| Method | Endpoint | Purpose |
+Both modes share the same engine. They differ in how much control the analyst has.
+
+| Quick mode | Advanced mode |
+|:---:|:---:|
+| <img src="assets/quick-findings.jpg" alt="Quick mode findings" width="330"> | <img src="assets/advanced-findings.jpg" alt="Advanced mode findings" width="440"> |
+| Question in, findings out. Progress is streamed step by step and the model is selected automatically. | The same findings, after reviewing the query context, the KQL and the model choice. |
+
+### Advanced mode
+
+Advanced mode stops after the query so the analyst can inspect what the agent decided before any analysis is paid for:
+
+- **Query context:** the table, time range, host and fields the agent selected, with its rationale.
+- **Editable KQL:** the generated query can be changed before it is used, and the record count updates for the query that actually ran.
+- **Model comparison:** for `gpt-4.1-nano`, `gpt-4.1`, `gpt-5-mini` and `gpt-5`, it shows the input tokens against the context window, the output limit, whether the request fits the rate limit, and the estimated cost.
+- **Run analysis:** one click with the chosen model.
+
+<p align="center">
+  <img src="assets/advanced-plan.jpg" alt="Advanced mode: query context, editable KQL and model comparison" width="760">
+</p>
+
+## What the analysis model receives
+
+Each investigation sends one request: a fixed system prompt, plus a user message made of the analyst's question, instructions written for the queried table, a strict output format and the log rows returned by Log Analytics.
+
+<p align="center">
+  <img src="assets/prompt-structure.svg" alt="Structure of the system and user messages and the findings JSON" width="820">
+</p>
+
+## Response action: host isolation
+
+When a finding is high confidence and concerns one host, the analyst can isolate it. The action calls the Microsoft Defender for Endpoint API for full network isolation and requires the access password and a confirmation.
+
+<p align="center">
+  <img src="assets/isolate-confirm.jpg" alt="Isolation confirmation dialog" width="760">
+</p>
+
+<p align="center">
+  <img src="assets/defender-isolated.jpg" alt="Microsoft Defender device page showing the device as Isolated" width="760">
+</p>
+
+<p align="center">
+  <img src="assets/defender-action-center.jpg" alt="Microsoft Defender action center entry for the isolation request" width="760">
+</p>
+
+## Telemetry covered
+
+| Table | Source | Used to hunt for |
 |---|---|---|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/api/plan` | Stream query planning and Log Analytics results |
-| `POST` | `/api/analyze` | Run an edited KQL query and analyze its results |
-| `GET` | `/api/investigate` | Stream the complete Quick mode investigation |
-| `GET` | `/api/history` | Retrieve and search persisted findings |
-| `POST` | `/api/isolate` | Request Microsoft Defender device isolation |
+| `DeviceProcessEvents` | Microsoft Defender for Endpoint | Suspicious commands, PowerShell, encoded payloads |
+| `DeviceNetworkEvents` | Microsoft Defender for Endpoint | Unusual outbound connections and ports |
+| `DeviceLogonEvents` | Microsoft Defender for Endpoint | Brute force, password spraying, suspicious logons |
+| `DeviceFileEvents` | Microsoft Defender for Endpoint | Dropped or modified files and their hashes |
+| `AzureNetworkAnalytics_CL` | Azure NSG flow analytics | Malicious network flows |
+| `AzureActivity` | Azure Activity log | Control-plane operations and the caller behind them |
+| `SigninLogs` | Microsoft Entra ID | Failed and suspicious sign-ins |
 
-Quick mode and planning use Server-Sent Events so the frontend can display each investigation stage as it progresses.
+Each table has an explicit list of fields the agent may select. Anything outside it is blocked.
 
-## Model selection
+## Sample prompts
 
-The project keeps model metadata in `backend/core/GUARDRAILS.py`, including:
+- *Has windows-target-1 had any suspicious logons in the last 3 days?*
+- *I'm worried that windows-target-1 might have been maliciously logged into in the last few days.*
+- *We are suspicious of attacks against our tenant in the last couple days.*
+- *Show suspicious login activities on e-corp-v3 in the last 5 days.*
+- *Show suspicious PowerShell or encoded commands on e-corp-v3 in the last 5 days.*
 
-- Supported models
-- Input and output token limits
-- Approximate input/output pricing
-- Tier-based token-per-minute limits
+## Safety
 
-`backend/core/MODEL_MANAGEMENT.py` uses this information to estimate usage and cost for Advanced mode.
+- Table and field allow-lists, and an approved model list, are enforced before every query and analysis.
+- Investigation, planning, analysis and isolation endpoints are protected by an access password, checked with a constant-time comparison.
+- Isolation needs the password and an explicit confirmation.
+- Secrets live in environment variables. The findings history is excluded from version control.
 
-The configured default model is:
+## Built with
 
-```text
-gpt-5-mini
-```
-
-## Finding format
-
-Threat-hunt results follow a structured format containing fields such as:
-
-```json
-{
-  "title": "Suspicious activity",
-  "description": "Evidence-based explanation",
-  "mitre": {
-    "tactic": "Execution",
-    "technique": "Command and Scripting Interpreter",
-    "id": "T1059"
-  },
-  "confidence": "High",
-  "recommendations": [
-    "Investigate"
-  ],
-  "indicators_of_compromise": [
-    "example.exe"
-  ],
-  "tags": [
-    "unusual command"
-  ],
-  "notes": "Additional analyst context"
-}
-```
-
-Findings are appended to `backend/_threats.jsonl` with the investigation timestamp, original question, and selected table.
-
-That file is ignored by Git so local investigation history does not become part of the public repository.
-
-## Security model
-
-- API access for investigation, planning, and device isolation is protected by `HUNT_PASSWORD`.
-- Password comparison is performed using a constant-time comparison.
-- Generated table and field selections are checked against explicit allow-lists before querying Log Analytics.
-- Secrets are supplied through environment variables rather than source files.
-- The local findings history is excluded from version control.
-- Device isolation requires an explicit confirmation flow in the frontend.
-
-## Technology
-
-### Frontend
-
-- React
-- Vite
-- React Router
-- Material UI
-- Emotion
-
-### Backend
-
-- FastAPI
-- Uvicorn
-- OpenAI API
-- Azure Identity
-- Azure Monitor Query
-- Pandas
-- tiktoken
-- Pydantic
-- python-dotenv
-
-## MITRE ATT&CK
-
-The threat-analysis prompts are designed to identify and map suspicious behavior to MITRE ATT&CK tactics, techniques, and sub-techniques when the available evidence supports the mapping.
+| | |
+|---|---|
+| **Frontend** | React, Vite, React Router, Material UI |
+| **Backend** | Python, FastAPI, Uvicorn, pandas, Pydantic, tiktoken |
+| **AI** | OpenAI API (`gpt-4.1-nano`, `gpt-4.1`, `gpt-5-mini`, `gpt-5`) |
+| **Microsoft** | Azure Log Analytics, Microsoft Sentinel, Microsoft Defender for Endpoint, Microsoft Entra ID, Azure Monitor Query, Azure Identity |
+| **Query language** | KQL |
